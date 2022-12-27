@@ -1,5 +1,5 @@
 gen:
-	protoc -I=proto --go_out=generateProto proto/*.proto
+	protoc -I=proto --go-grpc_out=generateProto proto/*.proto
 
 clear:
 	rm -rf generateProto/*.pb.go
