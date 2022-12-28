@@ -16,8 +16,10 @@ type LaptopServer struct {
 	Store LaptopStore
 }
 
-func NewLaptopServer() *LaptopServer {
-	return &LaptopServer{}
+func NewLaptopServer(store LaptopStore) *LaptopServer {
+	return &LaptopServer{
+		store,
+	}
 }
 
 func (s *LaptopServer) CreateLaptop(
