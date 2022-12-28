@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	pb "pcbook/generateProto"
 
@@ -12,6 +13,7 @@ import (
 )
 
 type LaptopServer struct {
+	Store LaptopStore
 }
 
 func NewLaptopServer() *LaptopServer {
@@ -40,8 +42,21 @@ func (s *LaptopServer) CreateLaptop(
 		laptop.Id = id.String()
 
 	}
-	return &pb.CreateLaptopResponse{
-		Id: laptop.Id,
-	}, nil
 
+	// save laptop to store
+	err := s.Store.Save(laptop)
+
+	if err != nil {
+		code := codes.Internal
+		if errors.Is(err, ErrAlreadyExists) {
+			code = codes.AlreadyExists
+		}
+		return nil, status.Errorf(code, "cannot save laptop to store: %v", err)
+	}
+	log.Print("saved laptop with id: ", laptop.Id)
+
+	res := &pb.CreateLaptopResponse{
+		Id: laptop.Id,
+	}
+	return res, nil
 }
