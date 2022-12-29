@@ -55,9 +55,13 @@ func (store *InMemoryLaptopStore) Find(id string) (*pb.Laptop, error) {
 		return nil, nil
 	}
 
-	other := &pb.Laptop{}
-	err := copier.Copy(other, laptop)
+	return deepCopy(laptop)
+}
 
+func deepCopy(laptop *pb.Laptop) (*pb.Laptop, error) {
+	other := &pb.Laptop{}
+
+	err := copier.Copy(other, laptop)
 	if err != nil {
 		return nil, fmt.Errorf("cannot copy laptop data: %w", err)
 	}

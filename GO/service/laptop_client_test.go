@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"pcbook/sample"
+	"pcbook/serializer"
 	"pcbook/service"
 	"testing"
 
@@ -16,7 +17,8 @@ import (
 func TestLaptopClientCreateLaptop(t *testing.T) {
 	t.Parallel()
 
-	laptopServer, serverAddress := startTestLaptopServer(t)
+	laptopStore := service.NewInMemoryLaptopStore()
+	serverAddress := startTestLaptopServer(t, laptopStore)
 	laptopClient := newTestLaptopClient(t, serverAddress)
 
 	laptop := sample.NewLaptop()
@@ -26,10 +28,20 @@ func TestLaptopClientCreateLaptop(t *testing.T) {
 		Laptop: laptop,
 	}
 	res, err := laptopClient.CreateLaptop(context.Background(), req)
+
+	require.NoError(t, err)
+	require.NotNil(t, res.Id)
+	require.Equal(t, expectedId, res.Id)
+
+	other, err := laptopStore.Find(res.Id)
+	require.NoError(t, err)
+	require.NotNil(t, other)
+
+	requireSameLaptop(t, laptop, other)
 }
 
-func startTestLaptopServer(t *testing.T) (*service.LaptopServer, string) {
-	laptopServer := service.NewLaptopServer(service.NewInMemoryLaptopStore())
+func startTestLaptopServer(t *testing.T, laptopStore service.LaptopStore) string {
+	laptopServer := service.NewLaptopServer(laptopStore)
 
 	grpcServer := grpc.NewServer()
 
@@ -41,7 +53,7 @@ func startTestLaptopServer(t *testing.T) (*service.LaptopServer, string) {
 
 	go grpcServer.Serve(listener)
 
-	return laptopServer, listener.Addr().String()
+	return listener.Addr().String()
 
 }
 
@@ -51,4 +63,14 @@ func newTestLaptopClient(t *testing.T, serverAddress string) pb.LaptopServiceCli
 	require.NoError(t, err, "cannot connect to test laptop server")
 
 	return pb.NewLaptopServiceClient(conn)
+}
+
+func requireSameLaptop(t *testing.T, expected *pb.Laptop, actual *pb.Laptop) {
+	json1, err := serializer.ProtobufToJSON(expected)
+	require.NoError(t, err)
+
+	json2, err := serializer.ProtobufToJSON(expected)
+	require.NoError(t, err)
+
+	require.Equal(t, json1, json2)
 }

@@ -26,6 +26,7 @@ func (s *LaptopServer) CreateLaptop(
 	ctx context.Context,
 	req *pb.CreateLaptopRequest,
 ) (
+
 	*pb.CreateLaptopResponse,
 	error) {
 	laptop := req.GetLaptop()
