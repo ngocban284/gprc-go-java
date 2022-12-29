@@ -46,6 +46,16 @@ func (s *LaptopServer) CreateLaptop(
 
 	}
 
+	if ctx.Err() == context.Canceled {
+		log.Print("request is canceled")
+		return nil, status.Error(codes.Canceled, "request is canceled")
+	}
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Print("deadline is exceeded")
+		return nil, status.Error(codes.DeadlineExceeded, "deadline is exceeded")
+	}
+
 	// save laptop to store
 	err := s.laptopStore.Save(laptop)
 
