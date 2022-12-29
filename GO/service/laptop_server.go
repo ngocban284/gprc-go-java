@@ -7,25 +7,25 @@ import (
 	pb "pcbook/generateProto"
 
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type LaptopServer struct {
-	Store LaptopStore
+	pb.UnimplementedLaptopServiceServer
+	laptopStore LaptopStore
 }
 
-func NewLaptopServer(store LaptopStore) *LaptopServer {
+func NewLaptopServer(laptopStore LaptopStore) *LaptopServer {
 	return &LaptopServer{
-		store,
+		laptopStore: laptopStore,
 	}
 }
 
 func (s *LaptopServer) CreateLaptop(
 	ctx context.Context,
 	req *pb.CreateLaptopRequest,
-	opts ...grpc.CallOption) (
+) (
 	*pb.CreateLaptopResponse,
 	error) {
 	laptop := req.GetLaptop()
@@ -46,7 +46,7 @@ func (s *LaptopServer) CreateLaptop(
 	}
 
 	// save laptop to store
-	err := s.Store.Save(laptop)
+	err := s.laptopStore.Save(laptop)
 
 	if err != nil {
 		code := codes.Internal
