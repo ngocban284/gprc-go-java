@@ -115,7 +115,7 @@ func NewLaptop() *pb.Laptop {
 		Id:       RandomID(),
 		Brand:    brand,
 		Name:     name,
-		PriceUsd: RandomFloat(1500, 3000),
+		PriceUsd: RandomFloat(0, 3000),
 		Cpu:      NewCPU(),
 		Ram:      NewRam(),
 		Gpus:     []*pb.GPU{NewGPU()},
