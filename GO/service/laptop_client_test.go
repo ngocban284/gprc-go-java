@@ -39,6 +39,7 @@ func TestLaptopClientCreateLaptop(t *testing.T) {
 
 	requireSameLaptop(t, laptop, other)
 }
+
 func TestLaptopClientSearchLaptop(t *testing.T) {
 	t.Parallel()
 
@@ -106,6 +107,7 @@ func TestLaptopClientSearchLaptop(t *testing.T) {
 	}
 	require.Equal(t, len(expectedID), found)
 }
+
 func startTestLaptopServer(t *testing.T, laptopStore service.LaptopStore) string {
 	laptopServer := service.NewLaptopServer(laptopStore)
 
