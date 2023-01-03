@@ -99,8 +99,8 @@ func uploadImage(laptopClient pb.LaptopServiceClient, laptopID string, imageType
 	}
 
 	req := &pb.UploadImageRequest{
-		Data: &pb.UploadImageRequest_Info{
-			Info: &pb.ImageInfo{
+		Data: &pb.UploadImageRequest_ImageInfo{
+			ImageInfo: &pb.ImageInfo{
 				LaptopId:  laptopID,
 				ImageType: filepath.Ext(imagePath),
 			},
@@ -149,7 +149,7 @@ func uploadImage(laptopClient pb.LaptopServiceClient, laptopID string, imageType
 func testUploadImage(laptopClient pb.LaptopServiceClient) {
 	laptop := sample.NewLaptop()
 	createLaptop(laptopClient, laptop)
-	uploadImage(laptopClient, laptop.GetId(), "png", "tmp/pc.png")
+	uploadImage(laptopClient, laptop.GetId(), "jpeg", "tmp/kho-hieu.jpeg")
 }
 
 func testSearchLaptop(laptopClient pb.LaptopServiceClient) {

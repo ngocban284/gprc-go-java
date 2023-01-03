@@ -136,7 +136,12 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServe
 	imageSize := 0
 
 	for {
+		err := contextError(stream.Context())
+		if err != nil {
+			return err
+		}
 		log.Print("waiting to receive more data...")
+
 		req, err := stream.Recv()
 		if err == io.EOF {
 			log.Print("finished uploading image data")
@@ -183,4 +188,22 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServe
 
 	log.Print("saved image with id: ", imageID)
 	return nil
+}
+
+func contextError(ctx context.Context) error {
+	switch ctx.Err() {
+	case context.Canceled:
+		return logError(status.Error(codes.Canceled, "request is canceled"))
+	case context.DeadlineExceeded:
+		return logError(status.Error(codes.DeadlineExceeded, "deadline is exceeded"))
+	default:
+		return nil
+	}
+}
+
+func logError(err error) error {
+	if err != nil {
+		log.Print(err)
+	}
+	return err
 }
