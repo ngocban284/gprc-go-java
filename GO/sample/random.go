@@ -175,3 +175,7 @@ func RandomLaptopName(brand string) string {
 		return "Other"
 	}
 }
+
+func RandomLaptopScore() float64 {
+	return RandomFloat(1, 10)
+}

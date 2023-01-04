@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -164,6 +165,87 @@ func testSearchLaptop(laptopClient pb.LaptopServiceClient) {
 	searchLaptop(laptopClient, filter)
 }
 
+func rateLaptop(laptopClient pb.LaptopServiceClient, laptopIDs []string, scores []float64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stream, err := laptopClient.RateLaptop(ctx)
+	if err != nil {
+		return fmt.Errorf("cannot rate laptop: %w", err)
+	}
+
+	waitResponse := make(chan error)
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				log.Print("stream is closed by server")
+				waitResponse <- nil
+				return
+			}
+			if err != nil {
+				waitResponse <- fmt.Errorf("cannot receive response: %w", err)
+				return
+			}
+			log.Print("received response: ", res)
+		}
+	}()
+
+	for i, laptopID := range laptopIDs {
+		req := &pb.RateLaptopRequest{
+			LaptopId: laptopID,
+			Score:    scores[i],
+		}
+		log.Print("sending request: ", req)
+		err := stream.Send(req)
+		if err != nil {
+			return fmt.Errorf("cannot send request: %v - %v", err, stream.RecvMsg(nil))
+		}
+
+		log.Print("sent request: ", req)
+	}
+
+	err = stream.CloseSend()
+	if err != nil {
+		return fmt.Errorf("cannot close stream: %w", err)
+	}
+
+	return <-waitResponse
+}
+
+func testRateLaptop(laptopClient pb.LaptopServiceClient) {
+	n := 3
+	laptopIDs := make([]string, n)
+
+	for i := 0; i < n; i++ {
+		laptop := sample.NewLaptop()
+		createLaptop(laptopClient, laptop)
+		laptopIDs[i] = laptop.GetId()
+	}
+
+	scores := make([]float64, n)
+
+	for {
+		fmt.Print("rate laptop (y/n)? ")
+		var answer string
+		fmt.Scanln(&answer)
+
+		if answer != "y" {
+			break
+		}
+
+		for i := 0; i < n; i++ {
+			fmt.Printf("rate laptop %s: ", laptopIDs[i])
+			scores[i] = sample.RandomLaptopScore()
+		}
+
+		err := rateLaptop(laptopClient, laptopIDs, scores)
+		if err != nil {
+			log.Fatal("cannot rate laptop: ", err)
+		}
+	}
+}
+
 func main() {
 	serverAddress := flag.String("serverAddress", "", "server address")
 	flag.Parse()
@@ -187,6 +269,7 @@ func main() {
 	// 	MinRam:      &pb.Memory{Value: 8, Unit: pb.Memory_GIGABYTE},
 	// }
 	// searchLaptop(laptopClient, filter)
-	testUploadImage(laptopClient)
+	// testUploadImage(laptopClient)
+	testRateLaptop(laptopClient)
 
 }
