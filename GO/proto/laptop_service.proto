@@ -34,12 +34,12 @@ message UploadImageResponse {
 
 message RateLaptopRequest {
   string laptop_id = 1;
-  uint32 score = 2;
+  double score = 2;
 }
 
 message RateLaptopResponse {
   string laptop_id = 1;
-  uint32 rate_count = 2;
+  uint32 rated_count = 2;
   double average_core = 3;
 }
 
