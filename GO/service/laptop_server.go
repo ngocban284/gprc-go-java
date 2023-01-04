@@ -182,6 +182,10 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServe
 	return nil
 }
 
+func (server *LaptopServer) RateLaptop(stream pb.LaptopService_RateLaptopServer) error {
+	return nil
+}
+
 func contextError(ctx context.Context) error {
 	switch ctx.Err() {
 	case context.Canceled:
