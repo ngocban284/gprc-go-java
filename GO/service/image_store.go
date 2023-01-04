@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
@@ -39,8 +40,8 @@ func (store *DiskImageStore) Save(LaptopID, imageType string, imageData bytes.Bu
 		return "", fmt.Errorf("cannot generate image ID: %w", err)
 	}
 
-	image_path := fmt.Sprintf("%s/%s%s", LaptopID, imageID.String(), imageType)
-
+	image_path := fmt.Sprintf("%s/%s%s", store.imageFolder, imageID, imageType)
+	log.Print("image path: ", image_path)
 	file, err := os.Create(image_path)
 	if err != nil {
 		return "", fmt.Errorf("cannot create image file: %w", err)

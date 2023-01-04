@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"io"
@@ -17,8 +18,6 @@ import (
 )
 
 func createLaptop(laptopClient pb.LaptopServiceClient, laptop *pb.Laptop) {
-
-	laptop.Id = ""
 	req := &pb.CreateLaptopRequest{
 		Laptop: laptop,
 	}
@@ -106,23 +105,22 @@ func uploadImage(laptopClient pb.LaptopServiceClient, laptopID string, imageType
 			},
 		},
 	}
-
+	// log.Print("sending image info: ", req)
 	err = stream.Send(req)
 	if err != nil {
 		log.Fatal("cannot send image info: ", err)
 	}
 
+	reader := bufio.NewReader(file)
 	buffer := make([]byte, 1024)
-	for {
-		n, err :=
 
-			file.Read(buffer)
+	for {
+		n, err := reader.Read(buffer)
 		if err == io.EOF {
-			log.Print("finish reading image file")
 			break
 		}
 		if err != nil {
-			log.Fatal("cannot read image file: ", err)
+			log.Fatal("cannot read chunk to buffer: ", err)
 		}
 
 		req := &pb.UploadImageRequest{
@@ -130,19 +128,19 @@ func uploadImage(laptopClient pb.LaptopServiceClient, laptopID string, imageType
 				ChunkData: buffer[:n],
 			},
 		}
-
+		// log.Print("sending chunk: ", req)
 		err = stream.Send(req)
 		if err != nil {
-			log.Fatal("cannot send image chunk: ", err)
+			log.Fatal("cannot send chunk to server: ", err, stream.RecvMsg(nil))
 		}
-
 	}
 
 	res, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatal("cannot receive response: ", err)
 	}
-	log.Print("upload image successfully with id: ", res.GetId())
+
+	log.Printf("image uploaded with id: %s, size: %d", res.GetId(), res.GetSize())
 
 }
 
@@ -182,12 +180,13 @@ func main() {
 		createLaptop(laptopClient, sample.NewLaptop())
 	}
 
-	filter := &pb.Filter{
-		MaxPriceUsd: 1000,
-		MinCpuCores: 4,
-		MinCpuGhz:   2.5,
-		MinRam:      &pb.Memory{Value: 8, Unit: pb.Memory_GIGABYTE},
-	}
-	searchLaptop(laptopClient, filter)
+	// filter := &pb.Filter{
+	// 	MaxPriceUsd: 1000,
+	// 	MinCpuCores: 4,
+	// 	MinCpuGhz:   2.5,
+	// 	MinRam:      &pb.Memory{Value: 8, Unit: pb.Memory_GIGABYTE},
+	// }
+	// searchLaptop(laptopClient, filter)
+	testUploadImage(laptopClient)
 
 }

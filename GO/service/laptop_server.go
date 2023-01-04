@@ -112,26 +112,21 @@ func (server *LaptopServer) SearchLaptop(
 func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServer) error {
 	req, err := stream.Recv()
 	if err != nil {
-		log.Print("cannot receive image info: ", err)
-		return status.Errorf(codes.Unknown, "cannot receive image info: %v", err)
+		return logError(status.Errorf(codes.Unknown, "cannot receive image info"))
 	}
 
 	laptopID := req.GetImageInfo().GetLaptopId()
 	imageType := req.GetImageInfo().GetImageType()
-	log.Printf("receive a request with  laptopID: %s, imageType: %s", laptopID, imageType)
+	log.Printf("receive an upload-image request for laptop %s with image type %s", laptopID, imageType)
 
-	// check if laptop exists
 	laptop, err := server.laptopStore.Find(laptopID)
 	if err != nil {
-		log.Print("cannot find laptop with id: ", laptopID)
-		return status.Error(codes.NotFound, "cannot find laptop with id: "+laptopID)
+		return logError(status.Errorf(codes.Internal, "cannot find laptop: %v", err))
 	}
 	if laptop == nil {
-		log.Print("laptop with id not found: ", laptopID)
-		return status.Error(codes.InvalidArgument, "laptop with id not found: "+laptopID)
+		return logError(status.Errorf(codes.InvalidArgument, "laptop id %s doesn't exist", laptopID))
 	}
 
-	// receive image data
 	imageData := bytes.Buffer{}
 	imageSize := 0
 
@@ -140,41 +135,39 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServe
 		if err != nil {
 			return err
 		}
-		log.Print("waiting to receive more data...")
+
+		log.Print("waiting to receive more data")
 
 		req, err := stream.Recv()
 		if err == io.EOF {
-			log.Print("finished uploading image data")
+			log.Print("no more data")
 			break
 		}
 		if err != nil {
-			log.Print("cannot receive image data: ", err)
-			return status.Errorf(codes.Unknown, "cannot receive image data: %v", err)
+			return logError(status.Errorf(codes.Unknown, "cannot receive chunk data: %v", err))
 		}
 
 		chunk := req.GetChunkData()
 		size := len(chunk)
+
+		log.Printf("received a chunk with size: %d", size)
+
 		imageSize += size
 		if imageSize > maxImageSize {
-			log.Print("image size is too large")
-			return status.Errorf(codes.InvalidArgument, "image size is too large: %d > %d", imageSize, maxImageSize)
+			return logError(status.Errorf(codes.InvalidArgument, "image is too large: %d > %d", imageSize, maxImageSize))
 		}
 
 		_, err = imageData.Write(chunk)
 		if err != nil {
-			log.Print("cannot write chunk data to buffer: ", err)
-			return status.Errorf(codes.Internal, "cannot write chunk data to buffer: %v", err)
+			return logError(status.Errorf(codes.Internal, "cannot write chunk data: %v", err))
 		}
 	}
 
-	// save image to store
 	imageID, err := server.imageStore.Save(laptopID, imageType, imageData)
 	if err != nil {
-		log.Print("cannot save image to store: ", err)
-		return status.Errorf(codes.Internal, "cannot save image to store: %v", err)
+		return logError(status.Errorf(codes.Internal, "cannot save image to the store: %v", err))
 	}
 
-	// send response
 	res := &pb.UploadImageResponse{
 		Id:   imageID,
 		Size: uint32(imageSize),
@@ -182,11 +175,10 @@ func (server *LaptopServer) UploadImage(stream pb.LaptopService_UploadImageServe
 
 	err = stream.SendAndClose(res)
 	if err != nil {
-		log.Print("cannot send response: ", err)
-		return status.Errorf(codes.Internal, "cannot send response: %v", err)
+		return logError(status.Errorf(codes.Unknown, "cannot send response: %v", err))
 	}
 
-	log.Print("saved image with id: ", imageID)
+	log.Printf("saved image with id: %s, size: %d", imageID, imageSize)
 	return nil
 }
 
