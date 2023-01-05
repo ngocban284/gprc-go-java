@@ -258,9 +258,9 @@ func main() {
 	defer conn.Close()
 
 	laptopClient := pb.NewLaptopServiceClient(conn)
-	for i := 0; i < 10; i++ {
-		createLaptop(laptopClient, sample.NewLaptop())
-	}
+	// for i := 0; i < 10; i++ {
+	// 	createLaptop(laptopClient, sample.NewLaptop())
+	// }
 
 	// filter := &pb.Filter{
 	// 	MaxPriceUsd: 1000,
