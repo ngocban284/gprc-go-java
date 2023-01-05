@@ -8,6 +8,7 @@ import (
 	"net"
 	pb "pcbook/generateProto"
 	"pcbook/service"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -33,11 +34,21 @@ func streamInterceptor(
 	return handler(srv, stream)
 }
 
+const (
+	secretKey     = "secret"
+	tokenDuration = 15 * time.Minute
+)
+
 // hello world
 func main() {
 	port := flag.Int("port", 0, "port to listen on")
 	flag.Parse()
 	log.Print("starting server on port: ", *port)
+
+	authServer := service.NewAuthServer(
+		service.NewInMemoryUserStore(),
+		service.NewJWTManager(secretKey, tokenDuration),
+	)
 
 	laptopServer := service.NewLaptopServer(
 		service.NewInMemoryLaptopStore(),
@@ -49,6 +60,8 @@ func main() {
 		grpc.UnaryInterceptor(unaryInterceptor),
 		grpc.StreamInterceptor(streamInterceptor),
 	)
+
+	pb.RegisterAuthServiceServer(grpcServer, authServer)
 	pb.RegisterLaptopServiceServer(grpcServer, laptopServer)
 	reflection.Register(grpcServer)
 
