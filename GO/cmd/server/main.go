@@ -19,13 +19,11 @@ const (
 )
 
 func accessibleRoles() map[string][]string {
+	laptopServicePath := "/pcbook.LaptopService/"
 	return map[string][]string{
-		"/pb.AuthService/Login":          {"guest"},
-		"/pb.LaptopService/CreateLaptop": {"admin"},
-		"/pb.LaptopService/UploadImage":  {"admin"},
-		"/pb.LaptopService/RateLaptop":   {"user"},
-		"/pb.LaptopService/GetAll":       {"user"},
-		"/pb.LaptopService/SearchLaptop": {"user"},
+		laptopServicePath + "CreateLaptop": {"admin"},
+		laptopServicePath + "UploadImage":  {"admin"},
+		laptopServicePath + "RateLaptop":   {"admin", "user"},
 	}
 }
 
@@ -48,7 +46,7 @@ func main() {
 		service.NewInMemoryRatingStore(),
 	)
 
-	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles)
+	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles())
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.Unary()),
