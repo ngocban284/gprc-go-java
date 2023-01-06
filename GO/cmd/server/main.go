@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -14,30 +13,21 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func unaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	log.Print("---> intercepting unary method: ", info.FullMethod)
-	return handler(ctx, req)
-}
-
-func streamInterceptor(
-	srv interface{},
-	stream grpc.ServerStream,
-	info *grpc.StreamServerInfo,
-	handler grpc.StreamHandler,
-) error {
-	log.Print("---> intercepting stream method: ", info.FullMethod)
-	return handler(srv, stream)
-}
-
 const (
 	secretKey     = "secret"
 	tokenDuration = 15 * time.Minute
 )
+
+func accessibleRoles() map[string][]string {
+	return map[string][]string{
+		"/pb.AuthService/Login":          {"guest"},
+		"/pb.LaptopService/CreateLaptop": {"admin"},
+		"/pb.LaptopService/UploadImage":  {"admin"},
+		"/pb.LaptopService/RateLaptop":   {"user"},
+		"/pb.LaptopService/GetAll":       {"user"},
+		"/pb.LaptopService/SearchLaptop": {"user"},
+	}
+}
 
 // hello world
 func main() {
@@ -45,9 +35,11 @@ func main() {
 	flag.Parse()
 	log.Print("starting server on port: ", *port)
 
+	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
+
 	authServer := service.NewAuthServer(
 		service.NewInMemoryUserStore(),
-		service.NewJWTManager(secretKey, tokenDuration),
+		jwtManager,
 	)
 
 	laptopServer := service.NewLaptopServer(
@@ -56,9 +48,11 @@ func main() {
 		service.NewInMemoryRatingStore(),
 	)
 
+	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles)
+
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(unaryInterceptor),
-		grpc.StreamInterceptor(streamInterceptor),
+		grpc.UnaryInterceptor(interceptor.Unary()),
+		grpc.StreamInterceptor(interceptor.Stream()),
 	)
 
 	pb.RegisterAuthServiceServer(grpcServer, authServer)
