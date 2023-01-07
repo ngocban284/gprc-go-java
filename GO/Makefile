@@ -8,4 +8,6 @@ server:
 	go run cmd/server/main.go -port 8080
 client:
 	go run cmd/client/main.go -serverAddress 0.0.0.0:8080
-.PHONY: gen_grpc gen clear server client
+cert:
+	cd ./cert; ./gen.sh; cd ..
+.PHONY: gen_grpc gen clear server client cert
