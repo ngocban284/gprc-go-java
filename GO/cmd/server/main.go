@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -43,7 +45,22 @@ func seedUsers(userStore service.UserStore) error {
 	return createUser(userStore, "user1", "user1", "user")
 }
 
-// hello world
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	serverCert, err := tls.LoadX509KeyPair("cert/server-cert.pem", "cert/server-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	//config tsl
+	config := tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    nil,
+	}
+
+	return credentials.NewTLS(&config), nil
+}
+
 func main() {
 	port := flag.Int("port", 0, "port to listen on")
 	flag.Parse()
@@ -68,9 +85,16 @@ func main() {
 		service.NewInMemoryRatingStore(),
 	)
 
+	// tsl credentials
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		log.Fatal("cannot load tls credentials: ", err)
+	}
+
 	interceptor := service.NewAuthInterceptor(jwtManager, accessibleRoles())
 
 	grpcServer := grpc.NewServer(
+		grpc.Creds(creds),
 		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.StreamInterceptor(interceptor.Stream()),
 	)
