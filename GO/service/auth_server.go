@@ -26,7 +26,7 @@ func (s *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "cannot find user: %v", err)
 	}
-	if user == nil || user.IsCorrectPassword(req.GetPassword()) {
+	if user == nil || !user.IsCorrectPassword(req.GetPassword()) {
 		return nil, status.Errorf(codes.NotFound, "invalid username or password")
 	}
 

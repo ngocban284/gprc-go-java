@@ -27,16 +27,38 @@ func accessibleRoles() map[string][]string {
 	}
 }
 
+func createUser(userStore service.UserStore, username, password, role string) error {
+	user, err := service.NewUser(username, password, role)
+	if err != nil {
+		return err
+	}
+	return userStore.Save(user)
+}
+
+func seedUsers(userStore service.UserStore) error {
+	err := createUser(userStore, "admin", "admin", "admin")
+	if err != nil {
+		return err
+	}
+	return createUser(userStore, "user1", "user1", "user")
+}
+
 // hello world
 func main() {
 	port := flag.Int("port", 0, "port to listen on")
 	flag.Parse()
 	log.Print("starting server on port: ", *port)
 
+	userStore := service.NewInMemoryUserStore()
+	err := seedUsers(userStore)
+	if err != nil {
+		log.Fatal("cannot seed users: ", err)
+	}
+
 	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
 
 	authServer := service.NewAuthServer(
-		service.NewInMemoryUserStore(),
+		userStore,
 		jwtManager,
 	)
 

@@ -30,6 +30,7 @@ func (store *InMemoryUserStore) Save(user *User) error {
 	}
 
 	store.users[user.UserName] = user
+	// log.Printf("user %s saved", user.UserName)
 	return nil
 }
 
